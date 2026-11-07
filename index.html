@@ -151,16 +151,27 @@ input[type=file]::file-selector-button{margin-right:10px;border:0;border-radius:
 <input id="nome" required autocomplete="name">
 <label class="req" for="nasc">Data de nascimento</label>
 <input id="nasc" type="date" required>
+<label for="estciv">Estado civil</label>
+<select id="estciv"><option value="">Seleccione…</option><option>Solteiro(a)</option><option>Casado(a)</option><option>União de facto</option><option>Divorciado(a)</option><option>Viúvo(a)</option></select>
 <label class="req" for="end">Endereço</label>
 <input id="end" required autocomplete="street-address">
 <label class="req" for="bi">Número do BI</label>
 <input id="bi" required>
+<label for="bilocal">Local de emissão do BI</label>
+<input id="bilocal">
+<label for="biemis">Data de emissão do BI</label>
+<input id="biemis" type="date">
+<label for="bival">Data de validade do BI <small>(quando expira)</small></label>
+<input id="bival" type="date">
 
 <h2><span class="n">2</span>Contactos</h2>
 <label class="req" for="tel">Número de telefone</label>
 <input id="tel" type="tel" required autocomplete="tel">
 <label class="req" for="tel2">Número alternativo</label>
 <input id="tel2" type="tel" required>
+<label class="req" for="whats">Contacto de WhatsApp</label>
+<input id="whats" type="tel" required>
+<label class="chk" style="font-weight:400;font-size:.88rem"><input type="checkbox" id="wasame"> É o mesmo número do telefone acima</label>
 <label class="req" for="mail">E-mail do candidato</label>
 <input id="mail" type="email" required autocomplete="email">
 
@@ -199,6 +210,14 @@ input[type=file]::file-selector-button{margin-right:10px;border:0;border-radius:
 <input id="ano" inputmode="numeric" maxlength="4">
 <label for="enc">Encarregado de educação / contacto de emergência</label>
 <input id="enc">
+<label for="prof">Profissão ou ocupação actual</label>
+<input id="prof">
+<label for="exper">Experiência prévia na área do curso escolhido</label>
+<textarea id="exper"></textarea>
+<label for="nesp">Tem necessidades especiais?</label>
+<select id="nesp"><option value="">Seleccione…</option><option>Não</option><option>Sim</option></select>
+<div id="nespw" hidden><label for="nespq">Se sim, qual?</label>
+<input id="nespq"></div>
 
 <div class="priv"><details class="avisos"><summary>Avisos e Privacidade <span>Toque para ler</span></summary>
 <div class="avbody">
@@ -260,9 +279,9 @@ function fill(id){
   });
 }
 fill("c1");fill("c2");
-var REQ=[["nome","Nome completo"],["nasc","Data de nascimento"],["end","Endereço"],["c1","Curso (1.ª opção)"],["c2","Curso (2.ª opção)"],["tel","Número de telefone"],["tel2","Número alternativo"],["mail","E-mail do candidato"],["obj","Objetivo do curso"],["como","Como soube do instituto"],["porque","Motivação para fazer o curso no Instituto"],["bi","Número do BI"]];
+var REQ=[["nome","Nome completo"],["nasc","Data de nascimento"],["end","Endereço"],["c1","Curso (1.ª opção)"],["c2","Curso (2.ª opção)"],["tel","Número de telefone"],["tel2","Número alternativo"],["whats","Contacto de WhatsApp"],["mail","E-mail do candidato"],["obj","Objetivo do curso"],["como","Como soube do instituto"],["porque","Motivação para fazer o curso no Instituto"],["bi","Número do BI"]];
 var DOCS=[["doc_bi","Bilhete de Identidade (BI)"],["doc_cert","Certificado de habilitações"]];
-var OPT=[["periodo","Período preferido"],["sexo","Sexo / género"],["nac","Nacionalidade"],["prov","Província / cidade"],["esc","Nível de escolaridade"],["escola","Escola de conclusão"],["ano","Ano de conclusão"],["enc","Encarregado de educação / contacto de emergência"]];
+var OPT=[["periodo","Período preferido"],["estciv","Estado civil"],["bilocal","Local de emissão do BI"],["biemis","Data de emissão do BI"],["bival","Data de validade do BI"],["sexo","Sexo / género"],["nac","Nacionalidade"],["prov","Província / cidade"],["esc","Nível de escolaridade"],["escola","Escola de conclusão"],["ano","Ano de conclusão"],["enc","Encarregado de educação / contacto de emergência"],["prof","Profissão ou ocupação actual"],["exper","Experiência prévia na área do curso"],["nesp","Necessidades especiais"],["nespq","Quais necessidades especiais"]];
 function v(id){return document.getElementById(id).value.trim();}
 function digits(s){return s.replace(/[\s\-().]/g,"");}
 function phoneOk(s){var d=digits(s);return /^(\+?258)?8[2-7]\d{7}$/.test(d)||/^\+\d{8,15}$/.test(d);}
@@ -271,7 +290,7 @@ function ageOf(s){var b=new Date(s),n=new Date();if(isNaN(b))return NaN;var a=n.
 function mkRef(){var d=new Date(),al="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",r="";for(var i=0;i<4;i++)r+=al.charAt(Math.floor(Math.random()*al.length));return "PRE-"+String(d.getFullYear()).slice(2)+("0"+(d.getMonth()+1)).slice(-2)+("0"+d.getDate()).slice(-2)+"-"+r;}
 function check(){
   var bad=[],first=null,m=document.getElementById("msg");
-  document.getElementById("ano").classList.remove("bad");
+  ["ano","bival","biemis"].forEach(function(i){document.getElementById(i).classList.remove("bad");});
   REQ.forEach(function(r){var el=document.getElementById(r[0]);var ok=v(r[0])!==""&&(r[0]!=="mail"||el.validity.valid);el.classList.toggle("bad",!ok);if(!ok){bad.push(r[1]);if(!first)first=el;}});
   if(bad.length){m.textContent="Falta preencher ou corrigir: "+bad.join(", ")+".";first.focus();return false;}
   var errs=[];
@@ -279,6 +298,8 @@ function check(){
   var age=ageOf(v("nasc"));
   if(isNaN(age)||age<MINAGE||age>100)flag("nasc","Data de nascimento inválida ou idade inferior a "+MINAGE+" anos.");
   if(!phoneOk(v("tel")))flag("tel","Número de telefone inválido (ex.: 84 123 4567 ou +258 84 123 4567).");
+  if(!phoneOk(v("whats")))flag("whats","Contacto de WhatsApp inválido (ex.: 84 123 4567 ou +258 84 123 4567).");
+  if(v("biemis")&&v("bival")&&v("bival")<=v("biemis"))flag("bival","A data de validade do BI deve ser posterior à data de emissão.");
   if(!phoneOk(v("tel2")))flag("tel2","Número alternativo inválido (ex.: 84 123 4567).");
   if(!/^[0-9A-Za-z]{9,15}$/.test(digits(v("bi"))))flag("bi","Número do BI inválido (use apenas letras e números).");
   if(v("ano")&&!/^(19|20)\d{2}$/.test(v("ano")))flag("ano","Ano de conclusão inválido (ex.: 2022).");
@@ -288,11 +309,13 @@ function check(){
   for(var i=0;i<cks.length;i++){var ck=document.getElementById(cks[i][0]);if(!ck.checked){m.textContent=cks[i][1];ck.focus();return false;}}
   m.textContent="";if(!REF)REF=mkRef();return true;
 }
+function fv(id){var x=v(id);if(/^\d{4}-\d{2}-\d{2}$/.test(x))x=x.split("-").reverse().join("/");return x;}
+function skip(id){return id==="nespq"&&v("nesp")!=="Sim";}
 function body(){
   var t="FICHA DE PRÉ-INSCRIÇÃO (MANIFESTAÇÃO DE INTERESSE)\nReferência: "+REF+"\n\n";
-  REQ.forEach(function(r){t+=r[1]+": "+v(r[0])+"\n";});
+  REQ.forEach(function(r){t+=r[1]+": "+fv(r[0])+"\n";});
   t+="\n";
-  OPT.forEach(function(r){var x=v(r[0]);if(x)t+=r[1]+": "+x+"\n";});
+  OPT.forEach(function(r){var x=fv(r[0]);if(x&&!skip(r[0]))t+=r[1]+": "+x+"\n";});
   t+="\nDocumentos a anexar (BI e certificado):\n";
   DOCS.forEach(function(d){var f=document.getElementById(d[0]).files[0];t+="- "+d[1]+": "+(f?f.name:"não selecionado")+"\n";});
   t+="\nAutorizações concedidas: tratamento dos dados para os passos subsequentes na instituição; contacto quando as inscrições forem iniciadas; aceitação dos Avisos e Privacidade (pontos 1 a 6), incluindo a declaração sobre pagamento e devolução de valores.\n";
@@ -300,8 +323,17 @@ function body(){
 }
 var WKEY="1158b5f5-13c5-4234-a749-91d75f3f1f49";
 var sent={mail:false,wa:false,auto:false,sending:false,failed:false};
+var ORDER=["nome","nasc","estciv","sexo","nac","end","prov","bi","bilocal","biemis","bival","tel","tel2","whats","mail","c1","c2","periodo","obj","como","porque","esc","escola","ano","prof","exper","nesp","nespq","enc"];
+function mailFields(){
+  var lab={};REQ.concat(OPT).forEach(function(r){lab[r[0]]=r[1];});
+  var o={"Referência":REF};
+  ORDER.forEach(function(id){var x=fv(id);if(x&&!skip(id))o[lab[id]]=x;});
+  DOCS.forEach(function(d){var f=document.getElementById(d[0]).files[0];o[d[1]+" (ficheiro)"]=f?f.name:"não selecionado";});
+  o["Autorizações"]="Tratamento dos dados para os passos subsequentes; contacto quando as inscrições forem iniciadas; aceitação dos Avisos e Privacidade (pontos 1 a 6).";
+  return o;
+}
 function sendAuto(cb){
-  var payload={access_key:WKEY,subject:"Pré-inscrição "+REF+" — "+v("nome")+" — "+v("c1"),from_name:"Pré-inscrição Instituto Aqsa",name:v("nome"),email:v("mail"),message:body(),botcheck:""};
+  var payload=mailFields();payload.access_key=WKEY;payload.subject="Pré-inscrição "+REF+" — "+v("nome")+" — "+v("c1");payload.from_name="Pré-inscrição Instituto Aqsa";payload.replyto=v("mail");payload.botcheck="";
   var ctl=("AbortController" in window)?new AbortController():null;
   var to=setTimeout(function(){if(ctl)ctl.abort();},15000);
   try{
@@ -363,7 +395,7 @@ document.getElementById("copy").addEventListener("click",function(){
 function esc(x){return x.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function renderReview(){
   var ok=document.getElementById("ok"),h="<b>Confirme os seus dados</b><p>Verifique se está tudo correcto antes de enviar.</p><dl class=\"rev\">";
-  REQ.concat(OPT).forEach(function(r){var x=v(r[0]);if(r[0]==="nasc")x=x.split("-").reverse().join("/");if(x)h+="<dt>"+r[1]+"</dt><dd>"+esc(x)+"</dd>";});
+  REQ.concat(OPT).forEach(function(r){var x=fv(r[0]);if(x&&!skip(r[0]))h+="<dt>"+r[1]+"</dt><dd>"+esc(x)+"</dd>";});
   DOCS.forEach(function(d){var f=document.getElementById(d[0]).files[0];h+="<dt>"+d[1]+"</dt><dd>"+(f?esc(f.name):"não selecionado")+"</dd>";});
   h+="</dl><button type=\"button\" class=\"stp\" id=\"rv_ok\">Confirmar e continuar</button><button type=\"button\" class=\"alt\" id=\"rv_fix\">Corrigir dados</button>";
   ok.innerHTML=h;ok.hidden=false;
@@ -380,6 +412,13 @@ var fm=document.getElementById("f");
 fm.addEventListener("input",later);fm.addEventListener("change",later);
 document.getElementById("dclear").addEventListener("click",function(){clearDraft();fm.reset();REF=null;document.getElementById("draft").hidden=true;window.scrollTo({top:0,behavior:"smooth"});});
 if(loadDraft())document.getElementById("draft").hidden=false;
+function toggleNesp(){document.getElementById("nespw").hidden=v("nesp")!=="Sim";}
+document.getElementById("nesp").addEventListener("change",toggleNesp);
+var wc=document.getElementById("wasame");
+function syncWa(){if(wc.checked){document.getElementById("whats").value=document.getElementById("tel").value;later();}}
+wc.addEventListener("change",syncWa);
+document.getElementById("tel").addEventListener("input",syncWa);
+toggleNesp();
 </script>
 </body>
 </html>
