@@ -304,6 +304,7 @@ function check(){
   if(!/^[0-9A-Za-z]{9,15}$/.test(digits(v("bi"))))flag("bi","Número do BI inválido (use apenas letras e números).");
   if(v("ano")&&!/^(19|20)\d{2}$/.test(v("ano")))flag("ano","Ano de conclusão inválido (ex.: 2022).");
   if(v("c1")===v("c2"))flag("c2","A 2.ª opção deve ser diferente da 1.ª.");
+  DOCS.forEach(function(d){var f=document.getElementById(d[0]).files[0];if(f){var lim=/^image\//.test(f.type)?20971520:5242880;if(f.size>lim)flag(d[0],d[1]+": ficheiro demasiado grande (máx. "+(/^image\//.test(f.type)?"20":"5")+" MB).");}});
   if(errs.length){m.textContent=errs.join(" ");first.focus();return false;}
   var cks=[["priv","Aceite os Avisos e Privacidade para continuar."],["auth","Autorize o tratamento dos seus dados para continuar."],["contacto","Autorize ser contactado quando as inscrições iniciarem para continuar."]];
   for(var i=0;i<cks.length;i++){var ck=document.getElementById(cks[i][0]);if(!ck.checked){m.textContent=cks[i][1];ck.focus();return false;}}
@@ -322,7 +323,8 @@ function body(){
   return t;
 }
 var WKEY="1158b5f5-13c5-4234-a749-91d75f3f1f49";
-var sent={mail:false,wa:false,auto:false,sending:false,failed:false};
+var APPS_URL="https://script.google.com/macros/s/AKfycbwXv7dqsavFZsL6G_NryCtk67KSCoCPDOVcayvDqeeOw42I7v8coes_DxP5BhJPDrjPUQ/exec";
+var sent={mail:false,wa:false,auto:false,sending:false,failed:false,docs:false};
 var ORDER=["nome","nasc","estciv","sexo","nac","end","prov","bi","bilocal","biemis","bival","tel","tel2","whats","mail","c1","c2","periodo","obj","como","porque","esc","escola","ano","prof","exper","nesp","nespq","enc"];
 function mailFields(){
   var lab={};REQ.concat(OPT).forEach(function(r){lab[r[0]]=r[1];});
@@ -332,16 +334,59 @@ function mailFields(){
   o["Autorizações"]="Tratamento dos dados para os passos subsequentes; contacto quando as inscrições forem iniciadas; aceitação dos Avisos e Privacidade (pontos 1 a 6).";
   return o;
 }
-function sendAuto(cb){
-  var payload=mailFields();payload.access_key=WKEY;payload.subject="Pré-inscrição "+REF+" — "+v("nome")+" — "+v("c1");payload.from_name="Pré-inscrição Instituto Aqsa";payload.replyto=v("mail");payload.botcheck="";
+function viaWeb3(subj,cb){
+  var payload=mailFields();payload.access_key=WKEY;payload.subject=subj;payload.from_name="Pré-inscrição Instituto Aqsa";payload.replyto=v("mail");payload.botcheck="";
   var ctl=("AbortController" in window)?new AbortController():null;
   var to=setTimeout(function(){if(ctl)ctl.abort();},15000);
   try{
     fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload),signal:ctl?ctl.signal:undefined})
     .then(function(r){return r.json();})
-    .then(function(j){clearTimeout(to);cb(!!(j&&j.success));})
-    .catch(function(){clearTimeout(to);cb(false);});
-  }catch(e){clearTimeout(to);cb(false);}
+    .then(function(j){clearTimeout(to);cb(!!(j&&j.success),false);})
+    .catch(function(){clearTimeout(to);cb(false,false);});
+  }catch(e){clearTimeout(to);cb(false,false);}
+}
+function readFile(f){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onerror=function(){rej(new Error("read"));};
+    if(/^image\//.test(f.type)){
+      fr.onload=function(){
+        var im=new Image();
+        im.onload=function(){
+          var k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement("canvas");
+          c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+          c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+          res({name:f.name,type:"image/jpeg",ext:".jpg",data:c.toDataURL("image/jpeg",0.82).split(",")[1]});
+        };
+        im.onerror=function(){rej(new Error("img"));};
+        im.src=fr.result;
+      };
+    }else{
+      fr.onload=function(){res({name:f.name,type:f.type||"application/pdf",ext:f.name.indexOf(".")>-1?f.name.slice(f.name.lastIndexOf(".")):".pdf",data:fr.result.split(",")[1]});};
+    }
+    fr.readAsDataURL(f);
+  });
+}
+function buildFiles(){
+  var jobs=[],who=v("nome").replace(/[^A-Za-z0-9]+/g,"_");
+  DOCS.forEach(function(d){
+    var f=document.getElementById(d[0]).files[0];
+    if(f)jobs.push(readFile(f).then(function(o){o.name=(d[0]==="doc_bi"?"BI_":"Certificado_")+who+o.ext;return o;}));
+  });
+  return Promise.all(jobs);
+}
+function sendAuto(cb){
+  var subj="Pré-inscrição "+REF+" — "+v("nome")+" — "+v("c1");
+  if(!APPS_URL){viaWeb3(subj,cb);return;}
+  var ctl=("AbortController" in window)?new AbortController():null;
+  var to=setTimeout(function(){if(ctl)ctl.abort();},60000),nf=0;
+  buildFiles().then(function(files){
+    nf=files.length;
+    return fetch(APPS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({ref:REF,subject:subj,replyto:v("mail"),fields:mailFields(),files:files}),signal:ctl?ctl.signal:undefined});
+  }).then(function(r){return r.json();}).then(function(j){
+    clearTimeout(to);
+    if(j&&j.ok)cb(true,nf>0);else viaWeb3(subj,cb);
+  }).catch(function(){clearTimeout(to);viaWeb3(subj,cb);});
 }
 function upd(){
   var a=document.getElementById("s1"),b=document.getElementById("s2"),r=document.getElementById("sres");
@@ -354,9 +399,9 @@ function upd(){
   b.textContent=sent.wa?"✓ WhatsApp aberto":"2. Enviar por WhatsApp";b.className="stp"+(sent.wa?" done":"");
   if(sent.mail&&sent.wa){
     clearDraft();
-    r.innerHTML="<b>Obrigado pelo seu interesse!</b> "+(sent.auto?"A ficha foi enviada por e-mail e o WhatsApp foi aberto. Confirme que carregou em “Enviar” no WhatsApp e envie nessa conversa o BI e o certificado, como anexos.":"Os dois envios foram iniciados. Confirme que carregou em “Enviar” no e-mail e no WhatsApp e anexe o BI e o certificado.")+" Aguarde o nosso contacto quando as inscrições forem iniciadas.";
+    r.innerHTML="<b>Obrigado pelo seu interesse!</b> "+(sent.auto&&sent.docs?"A ficha e os documentos foram enviados por e-mail e o WhatsApp foi aberto. Confirme que carregou em “Enviar” no WhatsApp.":sent.auto?"A ficha foi enviada por e-mail e o WhatsApp foi aberto. Confirme que carregou em “Enviar” no WhatsApp e envie nessa conversa o BI e o certificado, como anexos.":"Os dois envios foram iniciados. Confirme que carregou em “Enviar” no e-mail e no WhatsApp e anexe o BI e o certificado.")+" Aguarde o nosso contacto quando as inscrições forem iniciadas.";
   }else if(sent.sending){
-    r.textContent="A enviar a ficha por e-mail… aguarde.";
+    r.textContent="A enviar a ficha por e-mail… aguarde, pode demorar um pouco se tiver documentos.";
   }else{
     var f=[];if(!sent.mail)f.push("e-mail");if(!sent.wa)f.push("WhatsApp");
     r.textContent=(sent.failed&&!sent.mail?"Não foi possível enviar automaticamente por e-mail; use o botão 1. ":"")+"Falta enviar por: "+f.join(" e ")+". A pré-inscrição só fica completa com os dois envios.";
@@ -378,9 +423,9 @@ function renderSend(){
     var w=window.open(url,"_blank");if(!w)location.href=url;
     sent.wa=true;upd();
   });
-  sent={mail:false,wa:false,auto:false,sending:true,failed:false};
+  sent={mail:false,wa:false,auto:false,sending:true,failed:false,docs:false};
   upd();ok.hidden=false;ok.scrollIntoView({behavior:"smooth",block:"start"});
-  sendAuto(function(good){sent.sending=false;if(good){sent.mail=true;sent.auto=true;}else{sent.failed=true;}upd();});
+  sendAuto(function(good,docs){sent.sending=false;if(good){sent.mail=true;sent.auto=true;sent.docs=!!docs;}else{sent.failed=true;}upd();});
 }
 document.getElementById("f").addEventListener("submit",function(e){
   e.preventDefault();if(!check())return;
@@ -419,6 +464,7 @@ function syncWa(){if(wc.checked){document.getElementById("whats").value=document
 wc.addEventListener("change",syncWa);
 document.getElementById("tel").addEventListener("input",syncWa);
 toggleNesp();
+if(APPS_URL){document.querySelector(".hint").textContent="Os documentos seguem no mesmo e-mail da ficha. Aceita PDF ou foto (as fotos são reduzidas automaticamente). Tamanho máximo: 5 MB por PDF.";}
 </script>
 </body>
 </html>
