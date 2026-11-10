@@ -10,6 +10,8 @@
 <meta property="og:description" content="Manifeste o seu interesse nos cursos técnico-profissionais do Instituto Aqsa, na Cidade da Beira. Preencha a ficha em poucos minutos.">
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#0a5a40">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎓%3C/text%3E%3C/svg%3E">
 <title>Instituto Aqsa - Pré-inscrição</title>
 <style>
@@ -110,6 +112,14 @@ input[type=file]::file-selector-button{margin-right:10px;border:0;border-radius:
 .draft[hidden]{display:none}
 .draft button{background:none;border:0;color:var(--pri);text-decoration:underline;padding:0 0 0 4px;font-weight:600;cursor:pointer;font-size:.88rem}
 .stp:disabled{opacity:.6;cursor:wait}
+body.flow main>*:not(#ok):not(.foot){display:none}
+.card{border:1px solid var(--bd);border-radius:14px;padding:14px;margin:12px 0;background:var(--card)}
+.card .ct{font:700 1rem Georgia,"Times New Roman",serif;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.card .n{width:26px;height:26px;border-radius:50%;background:var(--pri);color:var(--prit);display:inline-flex;align-items:center;justify-content:center;font:700 .82rem system-ui,sans-serif}
+.card p{margin:4px 0 10px;font-size:.88rem;color:var(--mut)}
+.card.done{border-color:var(--pri)}
+.card.locked{opacity:.55}
+.stp:disabled{opacity:.55;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -145,6 +155,7 @@ input[type=file]::file-selector-button{margin-right:10px;border:0;border-radius:
 <p class="sub">Esta ficha serve para manifestar o seu interesse nos cursos. Preencha os dados abaixo. Campos com <b style="color:var(--err)">*</b> são obrigatórios.</p>
 <div class="ok" id="ok" hidden><b>Obrigado pelo seu interesse!</b><p>A sua pré-inscrição no Instituto Técnico Médio Profissional AQSA foi preparada. Para concluir, carregue em “Enviar” na aplicação de e-mail que acabou de abrir. Se selecionou o BI e o certificado, lembre-se de os anexar a esse e-mail.</p><p>Se o e-mail não abriu, use o botão “Copiar dados” e envie a ficha para info.institutoaqsa@gmail.com.</p></div>
 <form id="f" novalidate>
+<input type="text" id="hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 <div class="draft" id="draft" hidden>Recuperámos os dados que já tinha preenchido neste telemóvel. <button type="button" id="dclear">Limpar e começar de novo</button></div>
 <h2><span class="n">1</span>Dados pessoais</h2>
 <label class="req" for="nome">Nome completo</label>
@@ -176,9 +187,13 @@ input[type=file]::file-selector-button{margin-right:10px;border:0;border-radius:
 <input id="mail" type="email" required autocomplete="email">
 
 <h2><span class="n">3</span>Curso pretendido</h2>
-<label class="req" for="c1">1.ª opção</label>
+<label class="req" for="c1">Curso pretendido <small>(1.ª opção)</small></label>
 <select id="c1" required></select>
-<label class="req" for="c2">2.ª opção <small>(caso a primeira não inicie)</small></label>
+<label for="outro">Quer inscrever-se em outro curso?</label>
+<select id="outro"><option>Não</option><option>Sim</option></select>
+<div id="c3w" hidden><label class="req" for="c3">Qual é o outro curso?</label>
+<select id="c3"></select></div>
+<label class="req" for="c2">2.ª opção <small>(caso um dos cursos escolhidos não inicie)</small></label>
 <select id="c2" required></select>
 <label for="periodo">Período preferido</label>
 <select id="periodo"><option value="">Seleccione o período…</option><option>Diurno</option><option>Pós-laboral</option><option>Fim de semana</option></select>
@@ -189,10 +204,10 @@ input[type=file]::file-selector-button{margin-right:10px;border:0;border-radius:
 <label class="req" for="porque">Qual é a sua motivação para fazer este curso connosco?</label>
 <textarea id="porque" required></textarea>
 
-<h2><span class="n">4</span>Documentos <small style="color:var(--mut);font-weight:400">(opcional)</small></h2>
-<label for="doc_bi">Bilhete de Identidade (BI) <small>— PDF ou imagem</small></label>
+<h2><span class="n">4</span>Documentos</h2>
+<label class="req" for="doc_bi">Bilhete de Identidade (BI) <small>— PDF ou imagem</small></label>
 <input id="doc_bi" type="file" accept=".pdf,image/*">
-<label for="doc_cert">Certificado de habilitações <small>— PDF ou imagem</small></label>
+<label for="doc_cert" id="certl">Certificado de habilitações <small>— PDF ou imagem</small> <small id="certnote"></small></label>
 <input id="doc_cert" type="file" accept=".pdf,image/*">
 <p class="hint">Os documentos devem ser anexados ao e-mail de pré-inscrição. Ao enviar, a ficha indicará quais os ficheiros a anexar.</p>
 <h2><span class="n">5</span>Informações adicionais <small style="color:var(--mut);font-weight:400">(opcional)</small></h2>
@@ -257,15 +272,15 @@ input[type=file]::file-selector-button{margin-right:10px;border:0;border-radius:
 <p class="msg" id="msg" role="alert"></p>
 <button type="submit" class="go">Enviar pré-inscrição</button>
 <button type="button" class="alt" id="copy">Copiar dados</button>
-<p class="note">A ficha segue automaticamente para o e-mail do Instituto. O envio pelo WhatsApp é também obrigatório, para preservação dos seus dados: toque em “Enviar” na conversa que se abrir e envie aí o BI e o certificado como anexos.</p>
+<p class="note">Depois de rever os dados, a ficha é enviada por e-mail (automático) e, a seguir, por WhatsApp, para preservação dos seus dados. Cada pré-inscrição recebe uma referência para consulta futura.</p>
 </form>
-<div class="foot"><b>Instituto Técnico Médio Profissional AQSA</b>Localização: Cidade da Beira<br>Contactos: <a href="tel:+258875850789">+258 87 585 0789</a> (chamadas normais e WhatsApp)<br>E-mail: <a href="mailto:info.institutoaqsa@gmail.com">info.institutoaqsa@gmail.com</a><br><a class="wa" href="https://wa.me/258875850789?text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20os%20cursos%20do%20Instituto%20T%C3%A9cnico%20M%C3%A9dio%20Profissional%20AQSA." target="_blank" rel="noopener">Falar no WhatsApp</a></div>
+<div class="foot"><b>Instituto Técnico Médio Profissional AQSA</b>Localização: Delegação Sede - Cidade da Beira<br>Contactos: <a href="tel:+258875850789">+258 87 585 0789</a> (chamadas normais e WhatsApp)<br>E-mail: <a href="mailto:info.institutoaqsa@gmail.com">info.institutoaqsa@gmail.com</a><br><a class="wa" href="https://wa.me/258875850789?text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20os%20cursos%20do%20Instituto%20T%C3%A9cnico%20M%C3%A9dio%20Profissional%20AQSA." target="_blank" rel="noopener">Falar no WhatsApp</a><br><span style="font-size:.75rem">Endereço oficial: institutoaqsa.github.io/Inscricao — desconfie de outros endereços.</span></div>
 </main>
 <script>
 var TO="info.institutoaqsa@gmail.com";
 var GROUPS=[
-["Cursos — Grupo 1",["Informática Básica","Electricidade Instaladora","Secretariado Executivo e Administração de Escritório","Gestão de Recursos Humanos e de Empresa","Inglês Prático","Higiene e Segurança no Trabalho"]],
-["Cursos — Grupo 2",["Jornalismo","Informática Avançada","Gestão Portuária","Contabilidade","Corte e Costura","Técnico Aduaneiro","Refrigeração","Mecânica Auto","Serralharia Civil","Electricidade Auto","Climatização","Canalização","Construção Civil","Gastronomia-Culinária e Confeitaria"]],
+["Formações de 3 meses",["Informática Básica","Electricidade Instaladora","Secretariado Executivo e Administração de Escritório","Gestão de Recursos Humanos e de Empresa","Inglês Prático","Higiene e Segurança no Trabalho"]],
+["Formações de 6 meses",["Jornalismo","Informática Avançada","Gestão Portuária","Contabilidade","Corte e Costura","Técnico Aduaneiro","Refrigeração","Mecânica Auto","Serralharia Civil","Electricidade Auto","Climatização","Canalização","Construção Civil","Gastronomia-Culinária e Confeitaria"]],
 ["Máquinas Pesadas",["Máquinas Pesadas — Retroescavadeira","Máquinas Pesadas — Empilhadeira","Máquinas Pesadas — Manitu","Máquinas Pesadas — Grua móvel e fixa"]],
 ["Cursos com duração de 2 anos e meio",["Gestão em Administração Pública","Contabilidade Auditoria","Educador Infantil","Gestão em Logística","Agropecuária"]]
 ];
@@ -278,10 +293,10 @@ function fill(id){
     s.appendChild(og);
   });
 }
-fill("c1");fill("c2");
+fill("c1");fill("c2");fill("c3");
 var REQ=[["nome","Nome completo"],["nasc","Data de nascimento"],["end","Endereço"],["c1","Curso (1.ª opção)"],["c2","Curso (2.ª opção)"],["tel","Número de telefone"],["tel2","Número alternativo"],["whats","Contacto de WhatsApp"],["mail","E-mail do candidato"],["obj","Objetivo do curso"],["como","Como soube do instituto"],["porque","Motivação para fazer o curso no Instituto"],["bi","Número do BI"]];
 var DOCS=[["doc_bi","Bilhete de Identidade (BI)"],["doc_cert","Certificado de habilitações"]];
-var OPT=[["periodo","Período preferido"],["estciv","Estado civil"],["bilocal","Local de emissão do BI"],["biemis","Data de emissão do BI"],["bival","Data de validade do BI"],["sexo","Sexo / género"],["nac","Nacionalidade"],["prov","Província / cidade"],["esc","Nível de escolaridade"],["escola","Escola de conclusão"],["ano","Ano de conclusão"],["enc","Encarregado de educação / contacto de emergência"],["prof","Profissão ou ocupação actual"],["exper","Experiência prévia na área do curso"],["nesp","Necessidades especiais"],["nespq","Quais necessidades especiais"]];
+var OPT=[["periodo","Período preferido"],["estciv","Estado civil"],["bilocal","Local de emissão do BI"],["biemis","Data de emissão do BI"],["bival","Data de validade do BI"],["sexo","Sexo / género"],["nac","Nacionalidade"],["prov","Província / cidade"],["esc","Nível de escolaridade"],["escola","Escola de conclusão"],["ano","Ano de conclusão"],["enc","Encarregado de educação / contacto de emergência"],["prof","Profissão ou ocupação actual"],["exper","Experiência prévia na área do curso"],["nesp","Necessidades especiais"],["nespq","Quais necessidades especiais"],["outro","Quer inscrever-se em outro curso?"],["c3","Outro curso a frequentar"]];
 function v(id){return document.getElementById(id).value.trim();}
 function digits(s){return s.replace(/[\s\-().]/g,"");}
 function phoneOk(s){var d=digits(s);return /^(\+?258)?8[2-7]\d{7}$/.test(d)||/^\+\d{8,15}$/.test(d);}
@@ -290,7 +305,7 @@ function ageOf(s){var b=new Date(s),n=new Date();if(isNaN(b))return NaN;var a=n.
 function mkRef(){var d=new Date(),al="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",r="";for(var i=0;i<4;i++)r+=al.charAt(Math.floor(Math.random()*al.length));return "PRE-"+String(d.getFullYear()).slice(2)+("0"+(d.getMonth()+1)).slice(-2)+("0"+d.getDate()).slice(-2)+"-"+r;}
 function check(){
   var bad=[],first=null,m=document.getElementById("msg");
-  ["ano","bival","biemis"].forEach(function(i){document.getElementById(i).classList.remove("bad");});
+  ["ano","bival","biemis","c3","doc_bi","doc_cert"].forEach(function(i){document.getElementById(i).classList.remove("bad");});
   REQ.forEach(function(r){var el=document.getElementById(r[0]);var ok=v(r[0])!==""&&(r[0]!=="mail"||el.validity.valid);el.classList.toggle("bad",!ok);if(!ok){bad.push(r[1]);if(!first)first=el;}});
   if(bad.length){m.textContent="Falta preencher ou corrigir: "+bad.join(", ")+".";first.focus();return false;}
   var errs=[];
@@ -303,7 +318,14 @@ function check(){
   if(!phoneOk(v("tel2")))flag("tel2","Número alternativo inválido (ex.: 84 123 4567).");
   if(!/^[0-9A-Za-z]{9,15}$/.test(digits(v("bi"))))flag("bi","Número do BI inválido (use apenas letras e números).");
   if(v("ano")&&!/^(19|20)\d{2}$/.test(v("ano")))flag("ano","Ano de conclusão inválido (ex.: 2022).");
+  if(v("outro")==="Sim"){
+    if(!v("c3"))flag("c3","Escolha o outro curso.");
+    else if(v("c3")===v("c1"))flag("c3","O outro curso deve ser diferente do primeiro.");
+    else if(v("c3")===v("c2"))flag("c2","A 2.ª opção deve ser diferente dos cursos escolhidos.");
+  }
   if(v("c1")===v("c2"))flag("c2","A 2.ª opção deve ser diferente da 1.ª.");
+  if(!document.getElementById("doc_bi").files[0])flag("doc_bi","Anexe o Bilhete de Identidade (BI).");
+  if(certObrig()&&!document.getElementById("doc_cert").files[0])flag("doc_cert","Anexe o certificado de habilitações (obrigatório nos cursos de 2 anos e meio).");
   DOCS.forEach(function(d){var f=document.getElementById(d[0]).files[0];if(f){var lim=/^image\//.test(f.type)?20971520:5242880;if(f.size>lim)flag(d[0],d[1]+": ficheiro demasiado grande (máx. "+(/^image\//.test(f.type)?"20":"5")+" MB).");}});
   if(errs.length){m.textContent=errs.join(" ");first.focus();return false;}
   var cks=[["priv","Aceite os Avisos e Privacidade para continuar."],["auth","Autorize o tratamento dos seus dados para continuar."],["contacto","Autorize ser contactado quando as inscrições iniciarem para continuar."]];
@@ -311,21 +333,26 @@ function check(){
   m.textContent="";if(!REF)REF=mkRef();return true;
 }
 function fv(id){var x=v(id);if(/^\d{4}-\d{2}-\d{2}$/.test(x))x=x.split("-").reverse().join("/");return x;}
-function skip(id){return id==="nespq"&&v("nesp")!=="Sim";}
+function skip(id){return (id==="nespq"&&v("nesp")!=="Sim")||(id==="c3"&&v("outro")!=="Sim");}
 function body(){
   var t="FICHA DE PRÉ-INSCRIÇÃO (MANIFESTAÇÃO DE INTERESSE)\nReferência: "+REF+"\n\n";
-  REQ.forEach(function(r){t+=r[1]+": "+fv(r[0])+"\n";});
-  t+="\n";
-  OPT.forEach(function(r){var x=fv(r[0]);if(x&&!skip(r[0]))t+=r[1]+": "+x+"\n";});
+  rowsList().forEach(function(r){var x=fv(r[0]);if(x&&!skip(r[0]))t+=r[1]+": "+x+"\n";});
   t+="\nDocumentos a anexar (BI e certificado):\n";
   DOCS.forEach(function(d){var f=document.getElementById(d[0]).files[0];t+="- "+d[1]+": "+(f?f.name:"não selecionado")+"\n";});
   t+="\nAutorizações concedidas: tratamento dos dados para os passos subsequentes na instituição; contacto quando as inscrições forem iniciadas; aceitação dos Avisos e Privacidade (pontos 1 a 6), incluindo a declaração sobre pagamento e devolução de valores.\n";
   return t;
 }
-var WKEY="1158b5f5-13c5-4234-a749-91d75f3f1f49";
+var WKEY="";
+var USAR_RESERVA=false;
+var T0=Date.now();
+function oficial(){var h=location.hostname;return h===""||h==="localhost"||h==="institutoaqsa.github.io";}
 var APPS_URL="https://script.google.com/macros/s/AKfycbwXv7dqsavFZsL6G_NryCtk67KSCoCPDOVcayvDqeeOw42I7v8coes_DxP5BhJPDrjPUQ/exec";
 var sent={mail:false,wa:false,auto:false,sending:false,failed:false,docs:false};
-var ORDER=["nome","nasc","estciv","sexo","nac","end","prov","bi","bilocal","biemis","bival","tel","tel2","whats","mail","c1","c2","periodo","obj","como","porque","esc","escola","ano","prof","exper","nesp","nespq","enc"];
+var ORDER=["nome","nasc","estciv","sexo","nac","end","prov","bi","bilocal","biemis","bival","tel","tel2","whats","mail","c1","outro","c3","c2","periodo","obj","como","porque","esc","escola","ano","prof","exper","nesp","nespq","enc"];
+var LONGOS=["Gestão em Administração Pública","Contabilidade Auditoria","Educador Infantil","Gestão em Logística","Agropecuária"];
+function certObrig(){return [v("c1"),v("outro")==="Sim"?v("c3"):"",v("c2")].some(function(x){return LONGOS.indexOf(x)>-1;});}
+function updCert(){var o=certObrig();document.getElementById("certl").classList.toggle("req",o);document.getElementById("certnote").textContent=o?"(obrigatório para o curso escolhido)":"";}
+function rowsList(){var lab={};REQ.concat(OPT).forEach(function(r){lab[r[0]]=r[1];});return ORDER.map(function(id){return [id,lab[id]];});}
 function mailFields(){
   var lab={};REQ.concat(OPT).forEach(function(r){lab[r[0]]=r[1];});
   var o={"Referência":REF};
@@ -375,9 +402,10 @@ function buildFiles(){
   });
   return Promise.all(jobs);
 }
+function reserva(subj,cb){if(USAR_RESERVA&&WKEY)viaWeb3(subj,cb);else cb(false,false,false);}
 function sendAuto(cb){
   var subj="Pré-inscrição "+REF+" — "+v("nome")+" — "+v("c1");
-  if(!APPS_URL){viaWeb3(subj,cb);return;}
+  if(!APPS_URL){reserva(subj,cb);return;}
   var ctl=("AbortController" in window)?new AbortController():null;
   var to=setTimeout(function(){if(ctl)ctl.abort();},60000),nf=0;
   buildFiles().then(function(files){
@@ -385,50 +413,69 @@ function sendAuto(cb){
     return fetch(APPS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({ref:REF,subject:subj,replyto:v("mail"),fields:mailFields(),files:files}),signal:ctl?ctl.signal:undefined});
   }).then(function(r){return r.json();}).then(function(j){
     clearTimeout(to);
-    if(j&&j.ok)cb(true,nf>0);else viaWeb3(subj,cb);
-  }).catch(function(){clearTimeout(to);viaWeb3(subj,cb);});
+    if(j&&j.ok)cb(true,nf>0,!!j.conf);else reserva(subj,cb);
+  }).catch(function(){clearTimeout(to);reserva(subj,cb);});
 }
+function gid(i){return document.getElementById(i);}
+function flow(on){document.body.classList.toggle("flow",on);window.scrollTo({top:0,behavior:"smooth"});}
 function upd(){
-  var a=document.getElementById("s1"),b=document.getElementById("s2"),r=document.getElementById("sres");
-  var ml,mc="stp";
-  if(sent.auto){ml="✓ E-mail enviado automaticamente";mc+=" done";}
-  else if(sent.mail){ml="✓ E-mail aberto";mc+=" done";}
-  else if(sent.sending){ml="A enviar por e-mail…";}
-  else{ml="1. Enviar por e-mail"+(sent.failed?" (manual)":"");}
-  a.textContent=ml;a.className=mc;a.disabled=sent.sending;
-  b.textContent=sent.wa?"✓ WhatsApp aberto":"2. Enviar por WhatsApp";b.className="stp"+(sent.wa?" done":"");
-  if(sent.mail&&sent.wa){
-    clearDraft();
-    r.innerHTML="<b>Obrigado pelo seu interesse!</b> "+(sent.auto&&sent.docs?"A ficha e os documentos foram enviados por e-mail e o WhatsApp foi aberto. Confirme que carregou em “Enviar” no WhatsApp.":sent.auto?"A ficha foi enviada por e-mail e o WhatsApp foi aberto. Confirme que carregou em “Enviar” no WhatsApp e envie nessa conversa o BI e o certificado, como anexos.":"Os dois envios foram iniciados. Confirme que carregou em “Enviar” no e-mail e no WhatsApp e anexe o BI e o certificado.")+" Aguarde o nosso contacto quando as inscrições forem iniciadas.";
+  var s1=gid("s1"),s1m=gid("s1m"),s2=gid("s2"),t1=gid("t1"),t2=gid("t2"),r=gid("sres"),c1=gid("k1"),c2=gid("k2");
+  if(sent.mail){
+    c1.className="card done";s1.hidden=true;s1m.hidden=true;
+    t1.textContent=sent.auto?"✓ "+(sent.docs?"Ficha e documentos enviados":"Ficha enviada")+" por e-mail."+(sent.conf?" Enviámos uma confirmação para o seu e-mail (veja também o spam).":""):"✓ E-mail aberto: carregue em “Enviar” na aplicação de e-mail e anexe o BI e o certificado.";
   }else if(sent.sending){
-    r.textContent="A enviar a ficha por e-mail… aguarde, pode demorar um pouco se tiver documentos.";
+    c1.className="card";s1.hidden=false;s1m.hidden=true;s1.disabled=true;s1.textContent="A enviar…";
+    t1.textContent="A enviar a ficha e os documentos. Aguarde, pode demorar um pouco.";
+  }else if(sent.failed){
+    c1.className="card";s1.hidden=false;s1.disabled=false;s1.textContent="Tentar de novo";s1m.hidden=false;
+    t1.textContent="Não foi possível enviar automaticamente. Tente de novo ou envie pelo seu e-mail.";
   }else{
-    var f=[];if(!sent.mail)f.push("e-mail");if(!sent.wa)f.push("WhatsApp");
-    r.textContent=(sent.failed&&!sent.mail?"Não foi possível enviar automaticamente por e-mail; use o botão 1. ":"")+"Falta enviar por: "+f.join(" e ")+". A pré-inscrição só fica completa com os dois envios.";
+    c1.className="card";s1.hidden=false;s1.disabled=false;s1.textContent="Enviar ficha e documentos";s1m.hidden=true;
+    t1.textContent="Envio automático da ficha e dos documentos para o Instituto.";
   }
+  c2.className="card"+(sent.mail?"":" locked")+(sent.wa?" done":"");
+  s2.disabled=!sent.mail||sent.wa;
+  s2.textContent=sent.wa?"✓ WhatsApp aberto":"Enviar por WhatsApp";
+  t2.textContent=sent.wa?"✓ Carregue em “Enviar” na conversa do WhatsApp."+(sent.docs?"":" Envie aí o BI e o certificado, como anexos."):(sent.mail?"Toque no botão e, na conversa que se abrir, carregue em “Enviar”."+(sent.docs?"":" Envie também o BI e o certificado, como anexos."):"Fica disponível depois do envio do e-mail.");
+  if(sent.mail&&sent.wa){clearDraft();r.innerHTML="<b>Obrigado pelo seu interesse!</b> A sua pré-inscrição foi enviada. Guarde a referência <b>"+REF+"</b>. Aguarde o nosso contacto quando as inscrições forem iniciadas.";}
+  else r.textContent="";
+}
+function sendMain(){
+  if(sent.sending||sent.auto)return;
+  sent.sending=true;sent.failed=false;upd();
+  sendAuto(function(good,docs,conf){sent.sending=false;if(good){sent.mail=true;sent.auto=true;sent.docs=!!docs;sent.conf=!!conf;}else{sent.failed=true;}upd();});
+}
+function manualMail(){
+  var subj="Pré-inscrição "+REF+" — "+v("nome")+" — "+v("c1");
+  location.href="mailto:"+TO+"?subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(body());
+  sent.mail=true;sent.auto=false;sent.docs=false;upd();
+}
+function openWa(){
+  if(!sent.mail)return;
+  var url="https://wa.me/258875850789?text="+encodeURIComponent(body());
+  var w=window.open(url,"_blank");if(!w)location.href=url;
+  sent.wa=true;upd();
 }
 function renderSend(){
-  var ok=document.getElementById("ok");
-  ok.innerHTML="<b>Quase concluído: falta enviar!</b><p>Para preservação dos seus dados, a pré-inscrição é enviada pelos <b>dois canais</b>: e-mail (automático) e WhatsApp (toque no botão e, na conversa que se abrir, em “Enviar”).</p><p class=\"refline\">Referência: <b>"+REF+"</b> — guarde este código.</p><button type=\"button\" class=\"stp\" id=\"s1\"></button><button type=\"button\" class=\"stp\" id=\"s2\"></button><p id=\"sres\" class=\"sres\"></p>";
-  document.getElementById("s1").addEventListener("click",function(){
-    if(sent.auto||sent.sending)return;
-    if(!check())return;
-    var subj="Pré-inscrição "+REF+" — "+v("nome")+" — "+v("c1");
-    location.href="mailto:"+TO+"?subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(body());
-    sent.mail=true;upd();
-  });
-  document.getElementById("s2").addEventListener("click",function(){
-    if(!check())return;
-    var url="https://wa.me/258875850789?text="+encodeURIComponent(body());
-    var w=window.open(url,"_blank");if(!w)location.href=url;
-    sent.wa=true;upd();
-  });
-  sent={mail:false,wa:false,auto:false,sending:true,failed:false,docs:false};
-  upd();ok.hidden=false;ok.scrollIntoView({behavior:"smooth",block:"start"});
-  sendAuto(function(good,docs){sent.sending=false;if(good){sent.mail=true;sent.auto=true;sent.docs=!!docs;}else{sent.failed=true;}upd();});
+  if(!oficial()){var o=gid("ok");o.innerHTML="<b>Endereço não oficial</b><p>Para a sua segurança, use apenas o endereço oficial do Instituto: <b>https://institutoaqsa.github.io/Inscricao/</b></p>";o.hidden=false;flow(true);return;}
+  sent={mail:false,wa:false,auto:false,sending:false,failed:false,docs:false,conf:false};
+  var ok=gid("ok");
+  ok.innerHTML="<b>Falta pouco: envie a sua pré-inscrição</b><p class=\"refline\">Referência: <b>"+REF+"</b> — guarde este código.</p>"+
+   "<div class=\"card\" id=\"k1\"><div class=\"ct\"><span class=\"n\">1</span>E-mail</div><p id=\"t1\"></p><button type=\"button\" class=\"stp\" id=\"s1\"></button><button type=\"button\" class=\"alt\" id=\"s1m\" hidden>Enviar pelo meu e-mail (manual)</button></div>"+
+   "<div class=\"card\" id=\"k2\"><div class=\"ct\"><span class=\"n\">2</span>WhatsApp</div><p id=\"t2\"></p><button type=\"button\" class=\"stp\" id=\"s2\" disabled>Enviar por WhatsApp</button></div>"+
+   "<p id=\"sres\" class=\"sres\"></p>";
+  ok.hidden=false;flow(true);
+  gid("s1").addEventListener("click",sendMain);
+  gid("s1m").addEventListener("click",manualMail);
+  gid("s2").addEventListener("click",openWa);
+  upd();
 }
 document.getElementById("f").addEventListener("submit",function(e){
-  e.preventDefault();if(!check())return;
+  e.preventDefault();
+  if(gid("hp").value)return;
+  if(Date.now()-T0<6000){gid("msg").textContent="Aguarde alguns segundos e tente de novo.";return;}
+  if(!check())return;
+  if(!REF)REF=mkRef();
   renderReview();
 });
 document.getElementById("copy").addEventListener("click",function(){
@@ -439,14 +486,13 @@ document.getElementById("copy").addEventListener("click",function(){
 });
 function esc(x){return x.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function renderReview(){
-  var ok=document.getElementById("ok"),h="<b>Confirme os seus dados</b><p>Verifique se está tudo correcto antes de enviar.</p><dl class=\"rev\">";
-  REQ.concat(OPT).forEach(function(r){var x=fv(r[0]);if(x&&!skip(r[0]))h+="<dt>"+r[1]+"</dt><dd>"+esc(x)+"</dd>";});
+  var ok=gid("ok"),h="<b>Confirme os seus dados</b><p>Verifique se está tudo correcto antes de enviar.</p><dl class=\"rev\">";
+  rowsList().forEach(function(r){var x=fv(r[0]);if(x&&!skip(r[0]))h+="<dt>"+r[1]+"</dt><dd>"+esc(x)+"</dd>";});
   DOCS.forEach(function(d){var f=document.getElementById(d[0]).files[0];h+="<dt>"+d[1]+"</dt><dd>"+(f?esc(f.name):"não selecionado")+"</dd>";});
   h+="</dl><button type=\"button\" class=\"stp\" id=\"rv_ok\">Confirmar e continuar</button><button type=\"button\" class=\"alt\" id=\"rv_fix\">Corrigir dados</button>";
-  ok.innerHTML=h;ok.hidden=false;
-  document.getElementById("rv_ok").addEventListener("click",function(){sent={mail:false,wa:false};renderSend();});
-  document.getElementById("rv_fix").addEventListener("click",function(){ok.hidden=true;document.getElementById("f").scrollIntoView({behavior:"smooth"});});
-  ok.scrollIntoView({behavior:"smooth",block:"start"});
+  ok.innerHTML=h;ok.hidden=false;flow(true);
+  gid("rv_ok").addEventListener("click",renderSend);
+  gid("rv_fix").addEventListener("click",function(){ok.hidden=true;flow(false);});
 }
 var DKEY="aqsa_preinscricao_rascunho",FIELDS=REQ.concat(OPT).map(function(r){return r[0];}),dt=null;
 function saveDraft(){try{var o={};FIELDS.forEach(function(id){o[id]=document.getElementById(id).value;});localStorage.setItem(DKEY,JSON.stringify(o));}catch(e){}}
@@ -455,16 +501,19 @@ function clearDraft(){try{localStorage.removeItem(DKEY);}catch(e){}}
 function later(){clearTimeout(dt);dt=setTimeout(saveDraft,400);}
 var fm=document.getElementById("f");
 fm.addEventListener("input",later);fm.addEventListener("change",later);
-document.getElementById("dclear").addEventListener("click",function(){clearDraft();fm.reset();REF=null;document.getElementById("draft").hidden=true;window.scrollTo({top:0,behavior:"smooth"});});
+document.getElementById("dclear").addEventListener("click",function(){clearDraft();fm.reset();REF=null;toggleNesp();toggleOutro();updCert();document.getElementById("draft").hidden=true;window.scrollTo({top:0,behavior:"smooth"});});
 if(loadDraft())document.getElementById("draft").hidden=false;
+["c1","c2","c3","outro"].forEach(function(i){document.getElementById(i).addEventListener("change",function(){updCert();});});
+function toggleOutro(){document.getElementById("c3w").hidden=v("outro")!=="Sim";}
+document.getElementById("outro").addEventListener("change",toggleOutro);
 function toggleNesp(){document.getElementById("nespw").hidden=v("nesp")!=="Sim";}
 document.getElementById("nesp").addEventListener("change",toggleNesp);
 var wc=document.getElementById("wasame");
 function syncWa(){if(wc.checked){document.getElementById("whats").value=document.getElementById("tel").value;later();}}
 wc.addEventListener("change",syncWa);
 document.getElementById("tel").addEventListener("input",syncWa);
-toggleNesp();
-if(APPS_URL){document.querySelector(".hint").textContent="Os documentos seguem no mesmo e-mail da ficha. Aceita PDF ou foto (as fotos são reduzidas automaticamente). Tamanho máximo: 5 MB por PDF.";}
+toggleNesp();toggleOutro();updCert();
+if(APPS_URL){document.querySelector(".hint").textContent="Os documentos seguem no mesmo e-mail da ficha. Aceita PDF ou foto (as fotos são reduzidas automaticamente). Tamanho máximo: 5 MB por PDF. O BI é obrigatório; o certificado é obrigatório nos cursos de 2 anos e meio.";}
 </script>
 </body>
 </html>
